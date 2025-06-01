@@ -4,14 +4,21 @@ import math
 
 # Available models for code explanation
 MODELS = {
-    "CodeT5-base-sum": "Salesforce/codet5-base-multi-sum"
+    "CodeT5-base-sum": "Salesforce/codet5-base-multi-sum",
+    "CodeT5-small-sum": "Salesforce/codet5-small",
+    "CodeBERTa": "huggingface/CodeBERTa-small-v1",
+    "StarCoder": "bigcode/starcoderbase"
 }
 
 @st.cache_resource
 def load_model(model_name):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-    return pipeline("summarization", model=model, tokenizer=tokenizer)
+    # Use summarization for CodeT5, text2text-generation for others
+    if "codet5" in model_name.lower():
+        return pipeline("summarization", model=model, tokenizer=tokenizer)
+    else:
+        return pipeline("text2text-generation", model=model, tokenizer=tokenizer)
 
 def chunk_code(code, tokenizer, max_length=512):
     tokens = tokenizer.encode(code)
@@ -39,19 +46,22 @@ if uploaded_files:
         st.subheader(f"File: {file.name}")
         st.code(code, language="python")  # Adjust language as needed
 
-        # Generate explanation
-        with st.spinner("Explaining..."):
-            code_chunks = chunk_code(code, explainer.tokenizer, max_length=512)
-            explanations_list = []
-            for idx, chunk in enumerate(code_chunks):
-                if not chunk.strip():
-                    continue  # Skip empty chunks
-                # For summarization, just use the code chunk
-                result = explainer(chunk, max_length=128, do_sample=False)[0]['summary_text']
-                explanations_list.append(f"Chunk {idx+1}:\n" + result.strip())
-            full_explanation = "\n\n".join(explanations_list)
+        # Generate line-by-line explanation
+        with st.spinner("Explaining line by line..."):
+            lines = code.splitlines()
+            line_explanations = []
+            for idx, line in enumerate(lines):
+                if not line.strip():
+                    continue  # Skip empty lines
+                prompt = f"Explain this line of code:\n{line}"
+                if "codet5" in model_id.lower():
+                    result = explainer(line, max_length=64, do_sample=False)[0].get('summary_text', '')
+                else:
+                    result = explainer(prompt, max_length=64, do_sample=False)[0].get('generated_text', '')
+                line_explanations.append(f"Line {idx+1}: {line}\nExplanation: {result.strip()}\n")
+            full_explanation = "\n".join(line_explanations)
             explanations[file.name] = full_explanation
-            st.success("Explanation:")
+            st.success("Line-by-line Explanation:")
             st.write(full_explanation)
 
     # Comparison feature (up to 4 files)
