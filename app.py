@@ -45,22 +45,26 @@ if uploaded_files:
             code_chunks = chunk_code(code, explainer.tokenizer, max_length=512)
             explanations_list = []
             for idx, chunk in enumerate(code_chunks):
-                prompt = f"Explain the following code:\n{chunk}"
+                if not chunk.strip():
+                    continue  # Skip empty chunks
+                prompt = f"Explain this code:\n{chunk}"
                 result = explainer(prompt, max_length=256, do_sample=False)[0]['generated_text']
-                explanations_list.append(f"Chunk {idx+1}:\n" + result)
+                explanations_list.append(f"Chunk {idx+1}:\n" + result.strip())
             full_explanation = "\n\n".join(explanations_list)
             explanations[file.name] = full_explanation
             st.success("Explanation:")
             st.write(full_explanation)
 
-    # Comparison feature
+    # Comparison feature (up to 4 files)
     if len(explanations) > 1:
         st.subheader("Compare Explanations")
         files = list(explanations.keys())
-        col1, col2 = st.columns(2)
-        with col1:
-            file1 = st.selectbox("File 1", files, key="file1")
-            st.write(explanations[file1])
-        with col2:
-            file2 = st.selectbox("File 2", files, key="file2")
-            st.write(explanations[file2])
+        num_cols = min(len(files), 4)
+        cols = st.columns(num_cols)
+        selected_files = []
+        for i, col in enumerate(cols):
+            with col:
+                file_key = f"file{i+1}"
+                file_selected = st.selectbox(f"File {i+1}", files, key=file_key)
+                selected_files.append(file_selected)
+                st.write(explanations[file_selected])
