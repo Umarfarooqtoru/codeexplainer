@@ -55,9 +55,10 @@ if uploaded_files:
                     continue  # Skip empty lines
                 prompt = f"Explain this line of code:\n{line}"
                 if "codet5" in model_id.lower():
-                    result = explainer(line, max_length=64, do_sample=False)[0].get('summary_text', '')
+                    # Set max_length to be a bit longer than input, but not too long
+                    result = explainer(line, max_length=max(16, len(line.split()) + 10), do_sample=False)[0].get('summary_text', '')
                 else:
-                    result = explainer(prompt, max_length=64, do_sample=False)[0].get('generated_text', '')
+                    result = explainer(prompt, max_length=max(16, len(line.split()) + 10), do_sample=False)[0].get('generated_text', '')
                 line_explanations.append(f"Line {idx+1}: {line}\nExplanation: {result.strip()}\n")
             full_explanation = "\n".join(line_explanations)
             explanations[file.name] = full_explanation
