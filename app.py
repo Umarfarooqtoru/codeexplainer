@@ -4,15 +4,14 @@ import math
 
 # Available models for code explanation
 MODELS = {
-    "CodeT5-base": "Salesforce/codet5-base",
-    "StarCoder": "bigcode/starcoderbase"
+    "CodeT5-base-sum": "Salesforce/codet5-base-multi-sum"
 }
 
 @st.cache_resource
 def load_model(model_name):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-    return pipeline("text2text-generation", model=model, tokenizer=tokenizer)
+    return pipeline("summarization", model=model, tokenizer=tokenizer)
 
 def chunk_code(code, tokenizer, max_length=512):
     tokens = tokenizer.encode(code)
@@ -47,8 +46,8 @@ if uploaded_files:
             for idx, chunk in enumerate(code_chunks):
                 if not chunk.strip():
                     continue  # Skip empty chunks
-                prompt = f"Explain this code:\n{chunk}"
-                result = explainer(prompt, max_length=256, do_sample=False)[0]['generated_text']
+                # For summarization, just use the code chunk
+                result = explainer(chunk, max_length=128, do_sample=False)[0]['summary_text']
                 explanations_list.append(f"Chunk {idx+1}:\n" + result.strip())
             full_explanation = "\n\n".join(explanations_list)
             explanations[file.name] = full_explanation
