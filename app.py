@@ -1,5 +1,6 @@
 import streamlit as st
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
+import math
 
 # Available models for code explanation
 MODELS = {
@@ -12,6 +13,15 @@ def load_model(model_name):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
     return pipeline("text2text-generation", model=model, tokenizer=tokenizer)
+
+def chunk_code(code, tokenizer, max_length=512):
+    tokens = tokenizer.encode(code)
+    chunks = []
+    for i in range(0, len(tokens), max_length):
+        chunk_tokens = tokens[i:i+max_length]
+        chunk = tokenizer.decode(chunk_tokens)
+        chunks.append(chunk)
+    return chunks
 
 st.title("CodeExplainerBot")
 
@@ -32,11 +42,16 @@ if uploaded_files:
 
         # Generate explanation
         with st.spinner("Explaining..."):
-            prompt = f"Explain the following code:\n{code}"
-            result = explainer(prompt, max_length=256, do_sample=False)[0]['generated_text']
-            explanations[file.name] = result
+            code_chunks = chunk_code(code, explainer.tokenizer, max_length=512)
+            explanations_list = []
+            for idx, chunk in enumerate(code_chunks):
+                prompt = f"Explain the following code:\n{chunk}"
+                result = explainer(prompt, max_length=256, do_sample=False)[0]['generated_text']
+                explanations_list.append(f"Chunk {idx+1}:\n" + result)
+            full_explanation = "\n\n".join(explanations_list)
+            explanations[file.name] = full_explanation
             st.success("Explanation:")
-            st.write(result)
+            st.write(full_explanation)
 
     # Comparison feature
     if len(explanations) > 1:
