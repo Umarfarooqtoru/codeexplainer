@@ -4,10 +4,7 @@ import math
 
 # Available models for code explanation
 MODELS = {
-    "CodeT5-base-sum": "Salesforce/codet5-base-multi-sum",
-    "CodeT5-small-sum": "Salesforce/codet5-small",
-    "CodeBERTa": "huggingface/CodeBERTa-small-v1",
-    "StarCoder": "bigcode/starcoderbase"
+    "CodeT5-small-sum": "Salesforce/codet5-small"
 }
 
 @st.cache_resource
