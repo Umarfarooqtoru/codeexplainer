@@ -54,11 +54,13 @@ if uploaded_files:
                 if not line.strip():
                     continue  # Skip empty lines
                 prompt = f"Explain this line of code:\n{line}"
+                # Calculate a reasonable max_length for the output (shorter than input for summarization)
+                input_length = len(line.split())
+                max_length = max(4, min(16, input_length // 2 + 2))
                 if "codet5" in model_id.lower():
-                    # Set max_length to be a bit longer than input, but not too long
-                    result = explainer(line, max_length=max(16, len(line.split()) + 10), do_sample=False)[0].get('summary_text', '')
+                    result = explainer(line, max_length=max_length, do_sample=False)[0].get('summary_text', '')
                 else:
-                    result = explainer(prompt, max_length=max(16, len(line.split()) + 10), do_sample=False)[0].get('generated_text', '')
+                    result = explainer(prompt, max_length=max_length, do_sample=False)[0].get('generated_text', '')
                 line_explanations.append(f"Line {idx+1}: {line}\nExplanation: {result.strip()}\n")
             full_explanation = "\n".join(line_explanations)
             explanations[file.name] = full_explanation
@@ -76,5 +78,3 @@ if uploaded_files:
             with col:
                 file_key = f"file{i+1}"
                 file_selected = st.selectbox(f"File {i+1}", files, key=file_key)
-                selected_files.append(file_selected)
-                st.write(explanations[file_selected])
