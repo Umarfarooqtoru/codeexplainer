@@ -54,9 +54,9 @@ if uploaded_files:
                 if not line.strip():
                     continue  # Skip empty lines
                 prompt = f"Explain this line of code:\n{line}"
-                # Calculate a reasonable max_length for the output (shorter than input for summarization)
                 input_length = len(line.split())
-                max_length = max(4, min(16, input_length // 2 + 2))
+                # Set max_length to about half the input length, minimum 1
+                max_length = max(1, input_length // 2)
                 if "codet5" in model_id.lower():
                     result = explainer(line, max_length=max_length, do_sample=False)[0].get('summary_text', '')
                 else:
