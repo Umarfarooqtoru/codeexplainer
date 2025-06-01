@@ -55,12 +55,13 @@ if uploaded_files:
                     continue  # Skip empty lines
                 prompt = f"Explain this line of code:\n{line}"
                 input_length = len(line.split())
-                # Set max_length to about half the input length, minimum 1
+                # Set max_length and ensure max_new_tokens is not set to avoid warning
                 max_length = max(1, input_length // 2)
+                gen_kwargs = dict(max_length=max_length, do_sample=False)
                 if "codet5" in model_id.lower():
-                    result = explainer(line, max_length=max_length, do_sample=False)[0].get('summary_text', '')
+                    result = explainer(line, **gen_kwargs)[0].get('summary_text', '')
                 else:
-                    result = explainer(prompt, max_length=max_length, do_sample=False)[0].get('generated_text', '')
+                    result = explainer(prompt, **gen_kwargs)[0].get('generated_text', '')
                 line_explanations.append(f"Line {idx+1}: {line}\nExplanation: {result.strip()}\n")
             full_explanation = "\n".join(line_explanations)
             explanations[file.name] = full_explanation
@@ -78,3 +79,5 @@ if uploaded_files:
             with col:
                 file_key = f"file{i+1}"
                 file_selected = st.selectbox(f"File {i+1}", files, key=file_key)
+                selected_files.append(file_selected)
+                st.write(explanations[file_selected])
